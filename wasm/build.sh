@@ -36,6 +36,7 @@ SOURCES=(
   "$SRCDIR/vm_compiled_light.cpp"
   "$SRCDIR/virtual_memory.c"
   "$SRCDIR/cpu.cpp"
+  "$SRCDIR/web_randomx.cpp"
 )
 
 EXPORTED_FUNCTIONS='[
@@ -139,6 +140,18 @@ EXPORTED_FUNCTIONS='[
   "_rxProfileGetBytecodeMs",
   "_rxProfileGetFinalMs",
   "_rxProfileGetHashes",
+  "_randomx_hash",
+  "_randomx_mine",
+  "_randomx_is_full_mem",
+  "_randomx_dataset_begin",
+  "_randomx_dataset_step",
+  "_randomx_dataset_percent",
+  "_randomx_dataset_ptr",
+  "_randomx_dataset_items",
+  "_randomx_dataset_item_bytes",
+  "_randomx_dataset_mark_ready",
+  "_randomx_set_threads",
+  "_randomx_get_threads",
   "_malloc",
   "_free"
 ]'
@@ -188,23 +201,28 @@ fi
 emcc -O3 -flto -DNDEBUG -msimd128 -pthread \
   -s WASM=1 \
   -s USE_PTHREADS=1 \
-  -s PTHREAD_POOL_SIZE=32 \
+  -s PTHREAD_POOL_SIZE=8 \
+  -s PTHREAD_POOL_SIZE_STRICT=0 \
+  -s STACK_SIZE=1048576 \
+  -s DEFAULT_PTHREAD_STACK_SIZE=1048576 \
   "${MEMORY_FLAGS[@]}" \
   -s SHARED_MEMORY=1 \
   -s EXPORTED_FUNCTIONS="$EXPORTED_FUNCTIONS" \
-  -s EXPORTED_RUNTIME_METHODS='["cwrap","ccall","HEAPU8","wasmMemory"]' \
+  -s EXPORTED_RUNTIME_METHODS='HEAPU8' \
   -s MODULARIZE=1 \
-  -s EXPORT_NAME="createRandomX" \
-  -s ENVIRONMENT='web,worker,node' \
+  -s EXPORT_NAME="createWebRandomX" \
+  -s ENVIRONMENT='worker' \
+  -s WASM_BIGINT=1 \
+  -s ABORTING_MALLOC=0 \
   -s NO_EXIT_RUNTIME=1 \
   -s DISABLE_EXCEPTION_CATCHING=0 \
   -I "$SRCDIR" \
   -I "$SRCDIR/blake2" \
   "${SOURCES[@]}" \
-  -o "$OUTDIR/randomx.js"
+  -o "$OUTDIR/web-randomx-mt.js"
 
-cp "$OUTDIR/randomx.js" "$OUTDIR/../public/randomx.js"
-cp "$OUTDIR/randomx.wasm" "$OUTDIR/../public/randomx.wasm"
+cp "$OUTDIR/web-randomx-mt.js" "$OUTDIR/../public/web-randomx-mt.js"
+cp "$OUTDIR/web-randomx-mt.wasm" "$OUTDIR/../public/web-randomx-mt.wasm"
 if [ -f "$OUTDIR/randomx.worker.js" ]; then
   cp "$OUTDIR/randomx.worker.js" "$OUTDIR/../public/randomx.worker.js"
 fi
